@@ -10,6 +10,7 @@ import {
   ZodTypeProvider,
 } from 'fastify-type-provider-zod'
 
+import { env } from '../../../../packages/env'
 import { errorHandler } from './error-handler'
 import { authRoutes } from './routes/auth'
 
@@ -17,17 +18,24 @@ const app = fastify().withTypeProvider<ZodTypeProvider>()
 
 app.register(fastifyCors)
 app.register(fastifyJwt, {
-  secret: 'secret',
+  secret: env.JWT_SECRET,
 })
 app.register(fastifySwagger, {
   openapi: {
-    openapi: '3.0.0',
     info: {
       title: 'next-rbac',
       description: 'multi-tenant & RABC',
       version: '0.1.0',
     },
-    servers: [],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+    },
   },
   transform: jsonSchemaTransform,
 })

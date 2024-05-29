@@ -2,7 +2,10 @@
   "name": "@next-rbac/api",
   "version": "0.0.0",
   "scripts": {
-    "dev": "tsx watch src/http/server.ts"
+    "dev": "pnpm env:load tsx watch src/http/server.ts",
+    "env:load": "dotenv -e ../../.env --",
+    "db:migrate": "pnpm env:load prisma migrate dev",
+    "db:studio": "pnpm env:load prisma studio"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.4.1",
@@ -22,6 +25,7 @@
     "@next-rbac/auth": "workspace:*",
     "@prisma/client": "5.14.0",
     "bcryptjs": "^2.4.3",
+    "dotenv-cli": "^7.4.2",
     "fastify": "^4.27.0",
     "fastify-plugin": "^4.5.1",
     "fastify-type-provider-zod": "^1.2.0",

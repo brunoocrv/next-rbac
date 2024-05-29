@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify'
 import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod'
 
+import { env } from '../../../../../../packages/env'
 import { prisma } from '../../../lib/prisma'
 import { authMiddleware } from '../../middlewares/auth'
 import { BadRequestError } from '../_errors/bad-request'
@@ -134,6 +135,7 @@ export async function authRoutes(app: FastifyInstance) {
         schema: {
           tags: ['auth'],
           summary: 'get a user profile',
+          security: [{ bearerAuth: [] }],
           response: {
             200: z.object({
               user: z.object({
@@ -272,15 +274,9 @@ export async function authRoutes(app: FastifyInstance) {
         'https://github.com/login/oauth/access_token',
       )
 
-      githubOAuthURL.searchParams.set('client_id', 'Ov23ctBRL1kLTuXRYZ4g')
-      githubOAuthURL.searchParams.set(
-        'client_secret',
-        '3f4eff8b488fe3ef5972d4194c2ae2a61f47a6c5',
-      )
-      githubOAuthURL.searchParams.set(
-        'redirect_uri',
-        'http://localhost:3000/api/auth/callback',
-      )
+      githubOAuthURL.searchParams.set('client_id', env.GITHUB_CLIENT_ID)
+      githubOAuthURL.searchParams.set('client_secret', env.GITHUB_CLIENT_SECRET)
+      githubOAuthURL.searchParams.set('redirect_uri', env.GITHUB_REDIRECT_URI)
       githubOAuthURL.searchParams.set('code', code)
 
       const githubTokenesponse = await fetch(githubOAuthURL, {

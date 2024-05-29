@@ -1,0 +1,21 @@
+{
+  "name": "@next-rbac/env",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "devDependencies": {
+    "@next-rbac/eslint-config": "workspace:*",
+    "@next-rbac/prettier": "workspace:*",
+    "@next-rbac/tsconfig": "workspace:*"
+  },
+  "eslintConfig": {
+    "extends": "@next-rbac/eslint-config/library"
+  },
+  "prettier": "@next-rbac/prettier",
+  "dependencies": {
+    "@t3-oss/env-nextjs": "^0.10.1",
+    "@types/node": "^20.12.7",
+    "zod": "^3.23.3"
+  }
+}
