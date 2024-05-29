@@ -4,6 +4,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod'
 import z from 'zod'
 
 import { prisma } from '../../../lib/prisma'
+import { authMiddleware } from '../../middlewares/auth'
 import { BadRequestError } from '../_errors/bad-request'
 import { UnauthorizedError } from '../_errors/unauthorized'
 
@@ -124,47 +125,252 @@ export async function authRoutes(app: FastifyInstance) {
     },
   )
 
-  app.withTypeProvider<ZodTypeProvider>().get(
-    '/profile',
+  app
+    .withTypeProvider<ZodTypeProvider>()
+    .register(authMiddleware)
+    .get(
+      '/profile',
+      {
+        schema: {
+          tags: ['auth'],
+          summary: 'get a user profile',
+          response: {
+            200: z.object({
+              user: z.object({
+                id: z.string().uuid(),
+                name: z.string().nullable(),
+                email: z.string().email(),
+                avatarUrl: z.string().url().nullable(),
+              }),
+            }),
+            400: z.object({
+              message: z.string(),
+            }),
+          },
+        },
+      },
+      async (request, reply) => {
+        const userId = await request.getCurrentUserId()
+
+        const user = await prisma.user.findUnique({
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+          where: { id: userId },
+        })
+
+        if (!user) {
+          return reply.status(404).send({
+            message: 'User not found',
+          })
+        }
+
+        return reply.status(200).send({ user })
+      },
+    )
+
+  app.withTypeProvider<ZodTypeProvider>().post(
+    '/password/recover',
     {
       schema: {
         tags: ['auth'],
-        summary: 'get a user profile',
+        summary: 'recover a user password',
+        body: z.object({
+          email: z.string().email(),
+        }),
         response: {
-          200: z.object({
-            user: z.object({
-              id: z.string().uuid(),
-              name: z.string().nullable(),
-              email: z.string().email(),
-              avatarUrl: z.string().url().nullable(),
-            }),
-          }),
-          400: z.object({
-            message: z.string(),
+          201: z.null(),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { email } = request.body
+
+      const user = await prisma.user.findUnique({
+        where: { email },
+      })
+
+      if (!user) {
+        throw new BadRequestError('User not found')
+      }
+
+      const { id: code } = await prisma.token.create({
+        data: {
+          type: 'PASSWORD_RECOVER',
+          userId: user.id,
+        },
+      })
+
+      console.log('code', code)
+
+      return reply.status(201).send()
+    },
+  )
+
+  app.withTypeProvider<ZodTypeProvider>().post(
+    '/password/reset',
+    {
+      schema: {
+        tags: ['auth'],
+        summary: 'reset a user password',
+        body: z.object({
+          code: z.string(),
+          password: z.string().min(6),
+        }),
+        response: {
+          204: z.null(),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { code, password } = request.body
+
+      const token = await prisma.token.findUnique({
+        where: { id: code },
+      })
+
+      if (!token) {
+        throw new UnauthorizedError('Invalid token')
+      }
+
+      const passwordHash = await hash(password, 6)
+
+      await prisma.user.update({
+        where: { id: token.userId },
+        data: {
+          passwordHash,
+        },
+      })
+
+      return reply.status(204).send()
+    },
+  )
+
+  app.withTypeProvider<ZodTypeProvider>().post(
+    '/sessions/github',
+    {
+      schema: {
+        tags: ['auth'],
+        summary: 'create a new session with github',
+        body: z.object({
+          code: z.string(),
+        }),
+        response: {
+          201: z.object({
+            token: z.string(),
           }),
         },
       },
     },
     async (request, reply) => {
-      const { sub } = await request.jwtVerify<{ sub: string }>()
+      const { code } = request.body
 
-      const user = await prisma.user.findUnique({
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          avatarUrl: true,
+      const githubOAuthURL = new URL(
+        'https://github.com/login/oauth/access_token',
+      )
+
+      githubOAuthURL.searchParams.set('client_id', 'Ov23ctBRL1kLTuXRYZ4g')
+      githubOAuthURL.searchParams.set(
+        'client_secret',
+        '3f4eff8b488fe3ef5972d4194c2ae2a61f47a6c5',
+      )
+      githubOAuthURL.searchParams.set(
+        'redirect_uri',
+        'http://localhost:3000/api/auth/callback',
+      )
+      githubOAuthURL.searchParams.set('code', code)
+
+      const githubTokenesponse = await fetch(githubOAuthURL, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
         },
-        where: { id: sub },
+      })
+
+      const githubAccessTokenData = await githubTokenesponse.json()
+
+      const { access_token: githubAccessToken } = z
+        .object({
+          access_token: z.string(),
+          token_type: z.literal('bearer'),
+          scope: z.string(),
+        })
+        .parse(githubAccessTokenData)
+
+      const githubUserResponse = await fetch('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${githubAccessToken}`,
+        },
+      })
+
+      const githubUserData = await githubUserResponse.json()
+
+      const {
+        id: githubId,
+        name,
+        email,
+        avatar_url: avatarUrl,
+      } = z
+        .object({
+          name: z.string().nullable(),
+          email: z.string().nullable(),
+          avatar_url: z.string().url(),
+          id: z.number().int().transform(String),
+        })
+        .parse(githubUserData)
+
+      if (!email) {
+        throw new BadRequestError('Email is required')
+      }
+
+      let user = await prisma.user.findUnique({
+        where: { email },
       })
 
       if (!user) {
-        return reply.status(404).send({
-          message: 'User not found',
+        user = await prisma.user.create({
+          data: {
+            name,
+            email,
+            avatarUrl,
+          },
         })
       }
 
-      return reply.status(200).send({ user })
+      let account = await prisma.account.findUnique({
+        where: {
+          provider_userId: {
+            provider: 'GITHUB',
+            userId: githubId,
+          },
+        },
+      })
+
+      if (!account) {
+        account = await prisma.account.create({
+          data: {
+            provider: 'GITHUB',
+            providerAccountId: githubId,
+            userId: user.id,
+          },
+        })
+      }
+
+      const token = await reply.jwtSign(
+        {
+          sub: user.id,
+        },
+        {
+          sign: {
+            expiresIn: '7d',
+          },
+        },
+      )
+
+      return reply.status(201).send({ token })
     },
   )
 }
