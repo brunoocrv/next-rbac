@@ -13,6 +13,7 @@ import {
 import { env } from '../../../../packages/env'
 import { errorHandler } from './error-handler'
 import { authRoutes } from './routes/auth'
+import { orgRoutes } from './routes/orgs'
 
 const app = fastify().withTypeProvider<ZodTypeProvider>()
 
@@ -48,6 +49,7 @@ app.setValidatorCompiler(validatorCompiler)
 app.setErrorHandler(errorHandler)
 
 app.register(authRoutes)
+app.register(orgRoutes)
 
 app
   .listen({ port: 3333 })
