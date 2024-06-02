@@ -35,7 +35,7 @@ model Token {
   type      TokenType
   createdAt DateTime  @default(now()) @map("created_at")
 
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @map("user_id")
 
   @@map("tokens")
@@ -50,7 +50,7 @@ model Account {
   provider          AccountProvider
   providerAccountId String          @map("provider_account_id")
 
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @map("user_id")
 
   @@unique([provider, userId])
@@ -67,10 +67,10 @@ model Invite {
   id    String @id @default(uuid())
   email String
 
-  author User?   @relation(fields: [userId], references: [id])
-  userId String? @map("user_id")
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId String? @map("author_id")
 
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId String       @map("organization_id")
 
   role Role
@@ -86,10 +86,10 @@ model Member {
   id   String @id @default(uuid())
   role Role   @default(MEMBER)
 
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId String       @map("organization_id")
 
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @map("user_id")
 
   @@unique([organizationId, userId])
@@ -128,7 +128,7 @@ model Project {
   owner   User   @relation(fields: [ownerId], references: [id])
   ownerId String @map("owner_id")
 
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId String       @map("organization_id")
 
   @@map("projects")

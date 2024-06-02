@@ -41,9 +41,13 @@ export function defineAbilityFor(user: User) {
     },
   })
 
+  ability.can = ability.can.bind(ability)
+  ability.cannot = ability.cannot.bind(ability)
+
   return ability
 }
 
 export * from './models/users'
 export * from './models/organizations'
 export * from './models/projects'
+export * from './roles'

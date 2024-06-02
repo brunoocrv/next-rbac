@@ -1,6 +1,4 @@
-import { Role } from '@prisma/client'
-
-import { defineAbilityFor, userSchema } from '../../../../packages/auth'
+import { defineAbilityFor, type Role, userSchema } from '@next-rbac/auth'
 
 export function getUserPermissions(userId: string, role: Role) {
   const authUser = userSchema.parse({

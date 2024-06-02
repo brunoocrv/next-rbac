@@ -13,7 +13,11 @@ import {
 import { env } from '../../../../packages/env'
 import { errorHandler } from './error-handler'
 import { authRoutes } from './routes/auth'
+import { billingRoutes } from './routes/billing'
+import { inviteRoutes } from './routes/invites'
+import { memberRoutes } from './routes/members'
 import { orgRoutes } from './routes/orgs'
+import { projectRoutes } from './routes/projects'
 
 const app = fastify().withTypeProvider<ZodTypeProvider>()
 
@@ -50,6 +54,10 @@ app.setErrorHandler(errorHandler)
 
 app.register(authRoutes)
 app.register(orgRoutes)
+app.register(projectRoutes)
+app.register(memberRoutes)
+app.register(inviteRoutes)
+app.register(billingRoutes)
 
 app
   .listen({ port: 3333 })

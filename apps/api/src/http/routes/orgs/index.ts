@@ -1,12 +1,12 @@
-import { FastifyInstance } from 'fastify'
-import { ZodTypeProvider } from 'fastify-type-provider-zod'
-import z from 'zod'
-
 import {
   defineAbilityFor,
   organizationSchema,
   userSchema,
-} from '../../../../../../packages/auth'
+} from '@next-rbac/auth'
+import { FastifyInstance } from 'fastify'
+import { ZodTypeProvider } from 'fastify-type-provider-zod'
+import z from 'zod'
+
 import { prisma } from '../../../lib/prisma'
 import { createSlug } from '../../../utils/create-slug'
 import { getUserPermissions } from '../../../utils/get-user-permissions'
@@ -247,7 +247,7 @@ export async function orgRoutes(app: FastifyInstance) {
 
         const authUser = userSchema.parse({
           id: userId,
-          role: membership.role.toLowerCase(),
+          role: membership.role,
         })
 
         const authOrg = organizationSchema.parse(organization)
