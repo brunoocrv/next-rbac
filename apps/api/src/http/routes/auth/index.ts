@@ -199,7 +199,7 @@ export async function authRoutes(app: FastifyInstance) {
         throw new BadRequestError('User not found')
       }
 
-      const { id: code } = await prisma.token.create({
+      await prisma.token.create({
         data: {
           type: 'PASSWORD_RECOVER',
           userId: user.id,

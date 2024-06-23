@@ -14,29 +14,36 @@ import { organizationSubject } from './subjects/organizations'
 import { projectSubject } from './subjects/project'
 import { userSubject } from './subjects/user'
 
-const appAbilitySchema = z.union([
-  userSubject,
+export * from './models/organizations'
+export * from './models/projects'
+export * from './models/users'
+export * from './roles'
+
+const appAbilitiesSchema = z.union([
   projectSubject,
-  inviteSubject,
+  userSubject,
   organizationSubject,
+  inviteSubject,
   billingSubject,
   z.tuple([z.literal('manage'), z.literal('all')]),
 ])
 
-export type AppAbility = MongoAbility<z.infer<typeof appAbilitySchema>>
+type AppAbilities = z.infer<typeof appAbilitiesSchema>
+
+export type AppAbility = MongoAbility<AppAbilities>
 export const createAppAbility = createMongoAbility as CreateAbility<AppAbility>
 
 export function defineAbilityFor(user: User) {
   const builder = new AbilityBuilder(createAppAbility)
 
   if (typeof permissions[user.role] !== 'function') {
-    throw new Error(`Unknown role: ${user.role}`)
+    throw new Error(`Permissions for role ${user.role} not found.`)
   }
 
   permissions[user.role](user, builder)
 
   const ability = builder.build({
-    detectSubjectType: (subject) => {
+    detectSubjectType(subject) {
       return subject.__typename
     },
   })
@@ -46,8 +53,3 @@ export function defineAbilityFor(user: User) {
 
   return ability
 }
-
-export * from './models/users'
-export * from './models/organizations'
-export * from './models/projects'
-export * from './roles'

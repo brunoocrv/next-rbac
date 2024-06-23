@@ -3,15 +3,18 @@ import { z } from 'zod'
 
 export const env = createEnv({
   server: {
-    DATABASE_URL: z.string().url(),
+    DATABASE_URL: z.string(),
     GITHUB_CLIENT_ID: z.string(),
     GITHUB_CLIENT_SECRET: z.string(),
     GITHUB_REDIRECT_URI: z.string().url(),
     JWT_SECRET: z.string(),
   },
   client: {},
-  shared: {},
+  shared: {
+    NEXT_PUBLIC_API_HOST: z.string(),
+  },
   runtimeEnv: {
+    NEXT_PUBLIC_API_HOST: process.env.NEXT_PUBLIC_API_HOST,
     DATABASE_URL: process.env.DATABASE_URL,
     GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
     GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,

@@ -92,6 +92,7 @@ export async function orgRoutes(app: FastifyInstance) {
               membership: z.object({
                 id: z.string(),
                 role: z.string(),
+                userid: z.string().uuid(),
                 organizationId: z.string(),
               }),
             }),
@@ -107,6 +108,7 @@ export async function orgRoutes(app: FastifyInstance) {
           membership: {
             id: membership.id,
             role: membership.role,
+            userid: membership.userId,
             organizationId: membership.organizationId,
           },
         }
